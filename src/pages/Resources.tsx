@@ -31,6 +31,7 @@ import {
   FileJson,
   FilePieChart,
   Database,
+  Eye,
 } from "lucide-react";
 import { ResourceFile } from "@/types/models";
 import { useAuth } from "@/contexts/AuthContext";
@@ -38,8 +39,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
+import PDFViewer from "@/components/PDFViewer";
 
-// Mock CS resource data
+// Mock CS resource data with file URLs
 const mockResources: ResourceFile[] = [
   {
     id: "1",
@@ -47,6 +49,7 @@ const mockResources: ResourceFile[] = [
     size: 3500000, // 3.5 MB
     type: "pdf",
     url: "#",
+    fileUrl: "https://raw.githubusercontent.com/mozilla/pdf.js/ba2edeae/web/compressed.tracemonkey-pldi-09.pdf", // Sample PDF
     uploadedBy: { id: "2", name: "Prof. Jane Smith" },
     uploadedAt: "2023-06-10T14:30:00Z",
     downloads: 128,
@@ -60,6 +63,7 @@ const mockResources: ResourceFile[] = [
     size: 4800000, // 4.8 MB
     type: "pdf",
     url: "#",
+    fileUrl: "https://raw.githubusercontent.com/mozilla/pdf.js/ba2edeae/web/compressed.tracemonkey-pldi-09.pdf", // Sample PDF
     uploadedBy: { id: "3", name: "Dr. Alan Turing" },
     uploadedAt: "2023-06-09T10:15:00Z",
     downloads: 98,
@@ -73,6 +77,7 @@ const mockResources: ResourceFile[] = [
     size: 2800000, // 2.8 MB
     type: "pdf",
     url: "#",
+    fileUrl: "https://raw.githubusercontent.com/mozilla/pdf.js/ba2edeae/web/compressed.tracemonkey-pldi-09.pdf", // Sample PDF
     uploadedBy: { id: "3", name: "Prof. Ada Lovelace" },
     uploadedAt: "2023-06-08T09:45:00Z",
     downloads: 67,
@@ -100,6 +105,7 @@ const mockResources: ResourceFile[] = [
     size: 1800000, // 1.8 MB
     type: "pdf",
     url: "#",
+    fileUrl: "https://raw.githubusercontent.com/mozilla/pdf.js/ba2edeae/web/compressed.tracemonkey-pldi-09.pdf", // Sample PDF
     uploadedBy: { id: "4", name: "Prof. Vint Cerf" },
     uploadedAt: "2023-06-06T11:30:00Z",
     downloads: 54,
@@ -113,6 +119,7 @@ const mockResources: ResourceFile[] = [
     size: 5300000, // 5.3 MB
     type: "pdf",
     url: "#",
+    fileUrl: "https://raw.githubusercontent.com/mozilla/pdf.js/ba2edeae/web/compressed.tracemonkey-pldi-09.pdf", // Sample PDF
     uploadedBy: { id: "3", name: "Prof. Linus Torvalds" },
     uploadedAt: "2023-06-05T14:10:00Z",
     downloads: 76,
@@ -139,6 +146,7 @@ const mockResources: ResourceFile[] = [
     size: 2100000, // 2.1 MB
     type: "pdf",
     url: "#",
+    fileUrl: "https://raw.githubusercontent.com/mozilla/pdf.js/ba2edeae/web/compressed.tracemonkey-pldi-09.pdf", // Sample PDF
     uploadedBy: { id: "4", name: "Dr. Margaret Hamilton" },
     uploadedAt: "2023-06-03T10:15:00Z",
     downloads: 63,
@@ -177,6 +185,7 @@ const Resources = () => {
   const [newFile, setNewFile] = useState<File | null>(null);
   const [fileDescription, setFileDescription] = useState("");
   const [fileCategory, setFileCategory] = useState("Algorithms");
+  const [selectedPdf, setSelectedPdf] = useState<ResourceFile | null>(null);
 
   // Filter resources based on search term and active tab
   const filteredResources = resources.filter((resource) => {
@@ -217,13 +226,20 @@ const Resources = () => {
   const handleUpload = () => {
     if (!newFile || !user) return;
 
+    // Get file extension
+    const fileExtension = newFile.name.split('.').pop()?.toLowerCase() || '';
+
+    // Create object URL for preview (would be replaced with actual upload in production)
+    const objectUrl = URL.createObjectURL(newFile);
+
     // Simulate file upload
     const newResource: ResourceFile = {
       id: Date.now().toString(),
       name: newFile.name,
       size: newFile.size,
-      type: newFile.name.split(".").pop() || "",
+      type: fileExtension,
       url: "#",
+      fileUrl: fileExtension === 'pdf' ? objectUrl : undefined,
       uploadedBy: { id: user.id, name: user.name },
       uploadedAt: new Date().toISOString(),
       downloads: 0,
@@ -257,6 +273,18 @@ const Resources = () => {
       title: "Download started",
       description: `Downloading ${resource.name}`,
     });
+  };
+
+  const handleViewPdf = (resource: ResourceFile) => {
+    if (resource.type === 'pdf' && resource.fileUrl) {
+      setSelectedPdf(resource);
+    } else {
+      toast({
+        title: "Cannot preview file",
+        description: "This file type cannot be previewed directly in the browser",
+        variant: "destructive",
+      });
+    }
   };
 
   // Get unique categories for the tabs
@@ -403,6 +431,16 @@ const Resources = () => {
                       </div>
                       
                       <div className="flex sm:flex-col gap-2 items-center">
+                        {resource.type === 'pdf' && resource.fileUrl && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewPdf(resource)}
+                          >
+                            <Eye className="h-4 w-4 mr-2" />
+                            View
+                          </Button>
+                        )}
                         <Button
                           variant="outline"
                           size="sm"
@@ -447,6 +485,15 @@ const Resources = () => {
           </p>
         </CardFooter>
       </Card>
+
+      {/* PDF Viewer Modal */}
+      {selectedPdf && selectedPdf.fileUrl && (
+        <PDFViewer 
+          fileUrl={selectedPdf.fileUrl} 
+          fileName={selectedPdf.name} 
+          onClose={() => setSelectedPdf(null)} 
+        />
+      )}
     </div>
   );
 };

@@ -28,6 +28,7 @@ export interface ResourceFile {
   size: number;
   type: string;
   url: string;
+  fileUrl?: string; // URL to the actual file for viewing
   uploadedBy: {
     id: string;
     name: string;
