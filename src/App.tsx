@@ -11,6 +11,7 @@ import Messages from "./pages/Messages";
 import Resources from "./pages/Resources";
 import Directory from "./pages/Directory";
 import Profile from "./pages/Profile";
+import Developer from "./pages/Developer";
 import NotFound from "./pages/NotFound";
 import MainLayout from "./components/layout/MainLayout";
 import PrivateRoute from "./components/auth/PrivateRoute";
@@ -68,6 +69,14 @@ const App = () => (
                 element={
                   <MainLayout>
                     <Profile />
+                  </MainLayout>
+                }
+              />
+              <Route
+                path="/developer"
+                element={
+                  <MainLayout>
+                    <Developer />
                   </MainLayout>
                 }
               />

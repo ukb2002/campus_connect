@@ -11,7 +11,8 @@ import {
   X, 
   User, 
   Home,
-  Settings
+  Settings,
+  Code
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -41,6 +42,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
     { name: "Resources", icon: FileText, href: "/resources" },
     { name: "Directory", icon: Users, href: "/directory" },
     { name: "Profile", icon: User, href: "/profile" },
+    { name: "Developer", icon: Code, href: "/developer" },
     { name: "Settings", icon: Settings, href: "/settings" }
   ];
 

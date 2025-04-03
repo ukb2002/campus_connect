@@ -20,6 +20,15 @@ const PrivateRoute = () => {
     // Redirect to login if not authenticated
     return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
+  
+  // Restrict developer page to admin and developer roles
+  if (
+    location.pathname === "/developer" && 
+    authState.user?.role !== "admin" && 
+    authState.user?.role !== "developer"
+  ) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   // Render child routes if authenticated
   return <Outlet />;
