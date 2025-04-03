@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -12,7 +11,8 @@ import {
   User, 
   Home,
   Settings,
-  Code
+  Code,
+  HelpCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -43,6 +43,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
     { name: "Directory", icon: Users, href: "/directory" },
     { name: "Profile", icon: User, href: "/profile" },
     { name: "Developer", icon: Code, href: "/developer" },
+    { name: "Help", icon: HelpCircle, href: "/help" },
     { name: "Settings", icon: Settings, href: "/settings" }
   ];
 
@@ -150,14 +151,12 @@ const MainLayout = ({ children }: MainLayoutProps) => {
 
   return (
     <div className="h-screen flex overflow-hidden bg-campus-gray-50">
-      {/* Desktop sidebar */}
       {!isMobile && (
         <aside className="hidden md:flex md:flex-col md:w-64 md:fixed md:inset-y-0 bg-white border-r border-campus-gray-200">
           {renderSidebarContent()}
         </aside>
       )}
       
-      {/* Mobile sidebar */}
       {isMobile && (
         <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
           <SheetTrigger asChild>
@@ -175,10 +174,8 @@ const MainLayout = ({ children }: MainLayoutProps) => {
         </Sheet>
       )}
       
-      {/* Main content */}
       <main className="flex-1 overflow-auto relative md:ml-64">
         <div className="w-full px-4 sm:px-6 md:px-8 py-4">
-          {/* Header with notifications */}
           <div className="flex justify-end mb-6">
             <Button variant="outline" size="icon" className="relative">
               <Bell className="w-5 h-5" />
@@ -188,7 +185,6 @@ const MainLayout = ({ children }: MainLayoutProps) => {
             </Button>
           </div>
           
-          {/* Page content */}
           {children}
         </div>
       </main>
