@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Messages from "./pages/Messages";
@@ -23,88 +24,90 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/" element={<Navigate to="/login" />} />
-            <Route path="/login" element={<Login />} />
-            
-            {/* Protected routes */}
-            <Route element={<PrivateRoute />}>
-              <Route
-                path="/dashboard"
-                element={
-                  <MainLayout>
-                    <Dashboard />
-                  </MainLayout>
-                }
-              />
-              <Route
-                path="/messages"
-                element={
-                  <MainLayout>
-                    <Messages />
-                  </MainLayout>
-                }
-              />
-              <Route
-                path="/resources"
-                element={
-                  <MainLayout>
-                    <Resources />
-                  </MainLayout>
-                }
-              />
-              <Route
-                path="/directory"
-                element={
-                  <MainLayout>
-                    <Directory />
-                  </MainLayout>
-                }
-              />
-              <Route
-                path="/profile"
-                element={
-                  <MainLayout>
-                    <Profile />
-                  </MainLayout>
-                }
-              />
-              <Route
-                path="/developer"
-                element={
-                  <MainLayout>
-                    <Developer />
-                  </MainLayout>
-                }
-              />
-              <Route
-                path="/help"
-                element={
-                  <MainLayout>
-                    <Help />
-                  </MainLayout>
-                }
-              />
-              <Route
-                path="/settings"
-                element={
-                  <MainLayout>
-                    <Settings />
-                  </MainLayout>
-                }
-              />
-            </Route>
-            
-            {/* Catch-all */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+      <ThemeProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/" element={<Navigate to="/login" />} />
+              <Route path="/login" element={<Login />} />
+              
+              {/* Protected routes */}
+              <Route element={<PrivateRoute />}>
+                <Route
+                  path="/dashboard"
+                  element={
+                    <MainLayout>
+                      <Dashboard />
+                    </MainLayout>
+                  }
+                />
+                <Route
+                  path="/messages"
+                  element={
+                    <MainLayout>
+                      <Messages />
+                    </MainLayout>
+                  }
+                />
+                <Route
+                  path="/resources"
+                  element={
+                    <MainLayout>
+                      <Resources />
+                    </MainLayout>
+                  }
+                />
+                <Route
+                  path="/directory"
+                  element={
+                    <MainLayout>
+                      <Directory />
+                    </MainLayout>
+                  }
+                />
+                <Route
+                  path="/profile"
+                  element={
+                    <MainLayout>
+                      <Profile />
+                    </MainLayout>
+                  }
+                />
+                <Route
+                  path="/developer"
+                  element={
+                    <MainLayout>
+                      <Developer />
+                    </MainLayout>
+                  }
+                />
+                <Route
+                  path="/help"
+                  element={
+                    <MainLayout>
+                      <Help />
+                    </MainLayout>
+                  }
+                />
+                <Route
+                  path="/settings"
+                  element={
+                    <MainLayout>
+                      <Settings />
+                    </MainLayout>
+                  }
+                />
+              </Route>
+              
+              {/* Catch-all */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </ThemeProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { 
   PaletteIcon, 
   BellIcon, 
@@ -20,11 +21,10 @@ const Settings = () => {
   const { toast } = useToast();
   const { authState } = useAuth();
   const { user } = authState;
+  const { darkMode, fontSize, toggleDarkMode, setFontSize } = useTheme();
   
   const [settings, setSettings] = useState({
-    // Appearance
-    darkMode: false,
-    fontSize: "medium",
+    // Appearance settings are now managed by ThemeContext
     
     // Notifications
     emailNotifications: true,
@@ -116,8 +116,8 @@ const Settings = () => {
                 </div>
                 <Switch 
                   id="dark-mode" 
-                  checked={settings.darkMode}
-                  onCheckedChange={() => handleToggleSetting("darkMode")}
+                  checked={darkMode}
+                  onCheckedChange={toggleDarkMode}
                 />
               </div>
               
@@ -127,8 +127,8 @@ const Settings = () => {
                   {["small", "medium", "large"].map((size) => (
                     <Button 
                       key={size}
-                      variant={settings.fontSize === size ? "default" : "outline"}
-                      onClick={() => handleSettingChange("fontSize", size)}
+                      variant={fontSize === size ? "default" : "outline"}
+                      onClick={() => setFontSize(size as "small" | "medium" | "large")}
                       className="capitalize"
                     >
                       {size}

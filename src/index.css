@@ -96,16 +96,29 @@
   }
 }
 
+/* Font size classes used by the ThemeContext */
+html.text-sm {
+  font-size: 14px;
+}
+
+html.text-base {
+  font-size: 16px;
+}
+
+html.text-lg {
+  font-size: 18px;
+}
+
 @layer components {
   .campus-card {
-    @apply bg-white rounded-lg border border-campus-gray-200 shadow-sm hover:shadow transition-shadow duration-200;
+    @apply bg-white dark:bg-card rounded-lg border border-campus-gray-200 dark:border-campus-gray-700 shadow-sm hover:shadow transition-shadow duration-200;
   }
   
   .campus-sidebar-link {
-    @apply flex items-center gap-3 rounded-md px-3 py-2 text-campus-gray-700 hover:bg-campus-gray-100 hover:text-campus-blue transition-all;
+    @apply flex items-center gap-3 rounded-md px-3 py-2 text-campus-gray-700 dark:text-campus-gray-300 hover:bg-campus-gray-100 dark:hover:bg-campus-gray-800 hover:text-campus-blue dark:hover:text-campus-blue transition-all;
   }
   
   .campus-sidebar-link.active {
-    @apply bg-campus-blue/10 text-campus-blue font-medium;
+    @apply bg-campus-blue/10 dark:bg-campus-blue/20 text-campus-blue font-medium;
   }
 }

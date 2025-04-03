@@ -27,6 +27,10 @@ import {
   Upload,
   Search,
   Filter,
+  BookOpen,
+  FileJson,
+  FilePieChart,
+  Database,
 } from "lucide-react";
 import { ResourceFile } from "@/types/models";
 import { useAuth } from "@/contexts/AuthContext";
@@ -35,86 +39,112 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 
-// Mock resource data
+// Mock CS resource data
 const mockResources: ResourceFile[] = [
   {
     id: "1",
-    name: "Physics Lecture Notes",
-    size: 2400000, // 2.4 MB
+    name: "Data Structures and Algorithms",
+    size: 3500000, // 3.5 MB
     type: "pdf",
     url: "#",
-    uploadedBy: { id: "2", name: "Jane Smith" },
+    uploadedBy: { id: "2", name: "Prof. Jane Smith" },
     uploadedAt: "2023-06-10T14:30:00Z",
-    downloads: 15,
+    downloads: 128,
     isPublic: true,
-    category: "Lecture Notes",
-    description: "Comprehensive notes from the Advanced Physics lecture series",
+    category: "Algorithms",
+    description: "Comprehensive guide covering sorting algorithms, trees, graphs and complexity analysis",
   },
   {
     id: "2",
-    name: "Programming Assignment 3",
-    size: 150000, // 150 KB
-    type: "zip",
+    name: "Machine Learning Fundamentals",
+    size: 4800000, // 4.8 MB
+    type: "pdf",
     url: "#",
-    uploadedBy: { id: "3", name: "Admin User" },
+    uploadedBy: { id: "3", name: "Dr. Alan Turing" },
     uploadedAt: "2023-06-09T10:15:00Z",
-    downloads: 32,
+    downloads: 98,
     isPublic: true,
-    category: "Assignments",
-    description: "Source code and documentation for Programming Assignment 3",
+    category: "AI & Machine Learning",
+    description: "Introduction to machine learning concepts, neural networks, and practical implementations",
   },
   {
     id: "3",
-    name: "Campus Map",
-    size: 1800000, // 1.8 MB
-    type: "png",
+    name: "Database Systems Architecture",
+    size: 2800000, // 2.8 MB
+    type: "pdf",
     url: "#",
-    uploadedBy: { id: "3", name: "Admin User" },
+    uploadedBy: { id: "3", name: "Prof. Ada Lovelace" },
     uploadedAt: "2023-06-08T09:45:00Z",
     downloads: 67,
     isPublic: true,
-    category: "Resources",
-    description: "Updated map of the campus with new building labels",
+    category: "Databases",
+    description: "Principles of database management systems, SQL, and data modeling",
     thumbnailUrl: "https://placehold.co/400x300",
   },
   {
     id: "4",
-    name: "Research Paper Template",
-    size: 350000, // 350 KB
-    type: "docx",
+    name: "Web Development Project",
+    size: 15000000, // 15 MB
+    type: "zip",
     url: "#",
-    uploadedBy: { id: "2", name: "Jane Smith" },
+    uploadedBy: { id: "2", name: "Dr. Tim Berners-Lee" },
     uploadedAt: "2023-06-07T16:20:00Z",
     downloads: 45,
     isPublic: true,
-    category: "Templates",
-    description: "Official template for research papers with formatting guidelines",
+    category: "Web Development",
+    description: "Sample web development project with React, Node.js and MongoDB",
   },
   {
     id: "5",
-    name: "Data Structures Guide",
+    name: "Computer Networks Fundamentals",
     size: 1800000, // 1.8 MB
     type: "pdf",
     url: "#",
-    uploadedBy: { id: "4", name: "Bob Johnson" },
+    uploadedBy: { id: "4", name: "Prof. Vint Cerf" },
     uploadedAt: "2023-06-06T11:30:00Z",
-    downloads: 28,
+    downloads: 54,
     isPublic: true,
-    category: "Study Materials",
-    description: "Comprehensive guide on fundamental data structures and algorithms",
+    category: "Networking",
+    description: "Comprehensive guide on TCP/IP, routing protocols, and network security",
   },
   {
     id: "6",
-    name: "Campus Event Calendar",
-    size: 500000, // 500 KB
-    type: "xlsx",
+    name: "Operating Systems Concepts",
+    size: 5300000, // 5.3 MB
+    type: "pdf",
     url: "#",
-    uploadedBy: { id: "3", name: "Admin User" },
+    uploadedBy: { id: "3", name: "Prof. Linus Torvalds" },
     uploadedAt: "2023-06-05T14:10:00Z",
-    downloads: 19,
+    downloads: 76,
     isPublic: true,
-    category: "Administrative",
-    description: "Calendar of upcoming campus events for the current semester",
+    category: "Operating Systems",
+    description: "In-depth exploration of OS design, process management, and memory allocation",
+  },
+  {
+    id: "7",
+    name: "Python for Data Science",
+    size: 3800000, // 3.8 MB
+    type: "ipynb",
+    url: "#",
+    uploadedBy: { id: "2", name: "Prof. Guido van Rossum" },
+    uploadedAt: "2023-06-04T13:20:00Z",
+    downloads: 112,
+    isPublic: true,
+    category: "Data Science",
+    description: "Jupyter notebooks with Python examples for data analysis, visualization, and machine learning",
+  },
+  {
+    id: "8",
+    name: "Software Engineering Practices",
+    size: 2100000, // 2.1 MB
+    type: "pdf",
+    url: "#",
+    uploadedBy: { id: "4", name: "Dr. Margaret Hamilton" },
+    uploadedAt: "2023-06-03T10:15:00Z",
+    downloads: 63,
+    isPublic: true,
+    category: "Software Engineering",
+    description: "Best practices for software design, testing, and project management",
   },
 ];
 
@@ -126,11 +156,14 @@ const fileIcons: Record<string, React.ReactNode> = {
   jpg: <Image className="h-8 w-8 text-campus-blue" />,
   jpeg: <Image className="h-8 w-8 text-campus-blue" />,
   docx: <FileText className="h-8 w-8 text-campus-blue" />,
-  xlsx: <FileText className="h-8 w-8 text-campus-green" />,
+  xlsx: <FilePieChart className="h-8 w-8 text-campus-green" />,
+  ipynb: <FileCode className="h-8 w-8 text-campus-blue" />,
+  json: <FileJson className="h-8 w-8 text-campus-purple" />,
+  sql: <Database className="h-8 w-8 text-campus-blue" />,
 };
 
 // Default file icon
-const DefaultFileIcon = <FileText className="h-8 w-8 text-campus-gray-500" />;
+const DefaultFileIcon = <BookOpen className="h-8 w-8 text-campus-gray-500" />;
 
 const Resources = () => {
   const { authState } = useAuth();
@@ -143,7 +176,7 @@ const Resources = () => {
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [newFile, setNewFile] = useState<File | null>(null);
   const [fileDescription, setFileDescription] = useState("");
-  const [fileCategory, setFileCategory] = useState("Resources");
+  const [fileCategory, setFileCategory] = useState("Algorithms");
 
   // Filter resources based on search term and active tab
   const filteredResources = resources.filter((resource) => {
@@ -203,7 +236,7 @@ const Resources = () => {
     setUploadDialogOpen(false);
     setNewFile(null);
     setFileDescription("");
-    setFileCategory("Resources");
+    setFileCategory("Algorithms");
 
     toast({
       title: "File uploaded",
@@ -232,7 +265,7 @@ const Resources = () => {
   return (
     <div>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
-        <h1 className="text-2xl font-bold mb-4 sm:mb-0">Resources</h1>
+        <h1 className="text-2xl font-bold mb-4 sm:mb-0">Computer Science Resources</h1>
         
         <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
           <DialogTrigger asChild>
@@ -243,9 +276,9 @@ const Resources = () => {
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Upload Resource</DialogTitle>
+              <DialogTitle>Upload CS Resource</DialogTitle>
               <DialogDescription>
-                Share a file with your college community
+                Share computer science materials with the community
               </DialogDescription>
             </DialogHeader>
             
@@ -261,7 +294,7 @@ const Resources = () => {
                   id="category" 
                   value={fileCategory}
                   onChange={(e) => setFileCategory(e.target.value)}
-                  placeholder="e.g., Lecture Notes, Assignments"
+                  placeholder="e.g., Algorithms, Data Science, Web Development"
                 />
               </div>
               
@@ -271,7 +304,7 @@ const Resources = () => {
                   id="description"
                   value={fileDescription}
                   onChange={(e) => setFileDescription(e.target.value)}
-                  placeholder="Brief description of the file"
+                  placeholder="Brief description of the CS resource"
                   rows={3}
                 />
               </div>
@@ -291,16 +324,16 @@ const Resources = () => {
 
       <Card>
         <CardHeader className="pb-4">
-          <CardTitle>Browse Resources</CardTitle>
+          <CardTitle>Browse CS Resources</CardTitle>
           <CardDescription>
-            Access and share files across colleges
+            Access and share computer science learning materials
           </CardDescription>
           
           <div className="mt-4 flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-campus-gray-400 h-4 w-4" />
               <Input
-                placeholder="Search resources"
+                placeholder="Search CS resources"
                 className="pl-9 w-full"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -342,7 +375,7 @@ const Resources = () => {
                   return (
                     <div
                       key={resource.id}
-                      className="border rounded-md p-4 flex flex-col sm:flex-row items-center sm:items-start gap-4 hover:bg-campus-gray-50"
+                      className="border rounded-md p-4 flex flex-col sm:flex-row items-center sm:items-start gap-4 hover:bg-campus-gray-50 dark:hover:bg-campus-gray-800"
                     >
                       <div className="flex-shrink-0 flex items-center justify-center h-16 w-16">
                         {resource.thumbnailUrl ? (
@@ -358,8 +391,8 @@ const Resources = () => {
                       
                       <div className="flex-1 text-center sm:text-left">
                         <h3 className="font-medium">{resource.name}</h3>
-                        <p className="text-sm text-campus-gray-600 mb-1">{resource.description}</p>
-                        <div className="flex flex-wrap justify-center sm:justify-start gap-x-4 gap-y-1 text-xs text-campus-gray-500">
+                        <p className="text-sm text-campus-gray-600 dark:text-campus-gray-400 mb-1">{resource.description}</p>
+                        <div className="flex flex-wrap justify-center sm:justify-start gap-x-4 gap-y-1 text-xs text-campus-gray-500 dark:text-campus-gray-400">
                           <span>
                             {resource.type.toUpperCase()} • {formatFileSize(resource.size)}
                           </span>
@@ -401,7 +434,7 @@ const Resources = () => {
                 })
               ) : (
                 <div className="text-center py-8">
-                  <p className="text-campus-gray-600">No resources found</p>
+                  <p className="text-campus-gray-600 dark:text-campus-gray-400">No resources found</p>
                 </div>
               )}
             </div>
@@ -409,7 +442,7 @@ const Resources = () => {
         </CardContent>
         
         <CardFooter className="border-t p-4 flex justify-between items-center">
-          <p className="text-sm text-campus-gray-600">
+          <p className="text-sm text-campus-gray-600 dark:text-campus-gray-400">
             Showing {filteredResources.length} of {resources.length} resources
           </p>
         </CardFooter>
