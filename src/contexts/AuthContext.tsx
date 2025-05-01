@@ -44,11 +44,22 @@ const MOCK_USERS: User[] = [
     department: "Software Development",
     createdAt: new Date().toISOString(),
   },
+  {
+    id: "5",
+    name: "Google User",
+    email: "google.user@gmail.com",
+    role: "student",
+    avatar: "https://ui-avatars.com/api/?name=Google+User",
+    college: "College of Information Technology",
+    department: "Computer Science",
+    createdAt: new Date().toISOString(),
+  },
 ];
 
 interface AuthContextProps {
   authState: AuthState;
   login: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
   logout: () => void;
 }
 
@@ -62,6 +73,7 @@ const initialAuthState: AuthState = {
 const AuthContext = createContext<AuthContextProps>({
   authState: initialAuthState,
   login: async () => {},
+  loginWithGoogle: async () => {},
   logout: () => {},
 });
 
@@ -160,6 +172,62 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const loginWithGoogle = async () => {
+    setAuthState((prev) => ({
+      ...prev,
+      isLoading: true,
+      error: null,
+    }));
+
+    try {
+      // Simulating Google OAuth authentication flow
+      // In a real app, this would integrate with Google's OAuth API
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      
+      // For demo purposes, we'll use a mock Google user
+      const googleUser = MOCK_USERS.find((u) => u.email === "google.user@gmail.com");
+      
+      if (!googleUser) {
+        throw new Error("Google authentication failed");
+      }
+
+      // Update user with last active time
+      const updatedUser = {
+        ...googleUser,
+        lastActive: new Date().toISOString(),
+      };
+
+      // Store user in localStorage
+      localStorage.setItem("campusConnectUser", JSON.stringify(updatedUser));
+      
+      setAuthState({
+        isAuthenticated: true,
+        user: updatedUser,
+        isLoading: false,
+        error: null,
+      });
+
+      toast({
+        title: "Google Sign-in Successful",
+        description: `Welcome, ${updatedUser.name}!`,
+      });
+    } catch (error) {
+      setAuthState((prev) => ({
+        ...prev,
+        isAuthenticated: false,
+        user: null,
+        isLoading: false,
+        error: error instanceof Error ? error.message : "Google authentication failed",
+      }));
+
+      toast({
+        title: "Google Sign-in Failed",
+        description: error instanceof Error ? error.message : "Google authentication failed",
+        variant: "destructive",
+      });
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem("campusConnectUser");
     
@@ -177,7 +245,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ authState, login, logout }}>
+    <AuthContext.Provider value={{ authState, login, loginWithGoogle, logout }}>
       {children}
     </AuthContext.Provider>
   );

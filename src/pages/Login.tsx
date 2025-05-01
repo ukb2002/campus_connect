@@ -6,6 +6,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { Google } from "lucide-react";
 import {
   Form,
   FormControl,
@@ -16,6 +18,7 @@ import {
 } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
+import { Spinner } from "@/components/ui/spinner";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -23,9 +26,10 @@ const loginSchema = z.object({
 });
 
 const Login = () => {
-  const { login, authState } = useAuth();
+  const { login, loginWithGoogle, authState } = useAuth();
   const navigate = useNavigate();
   const [showDemoAccounts, setShowDemoAccounts] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   // Redirect if already authenticated
   React.useEffect(() => {
@@ -50,6 +54,17 @@ const Login = () => {
     form.setValue("email", email);
     form.setValue("password", "password");
     await login(email, "password");
+  };
+
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    try {
+      await loginWithGoogle();
+    } catch (error) {
+      console.error("Google sign-in failed:", error);
+    } finally {
+      setIsGoogleLoading(false);
+    }
   };
 
   const demoAccounts = [
@@ -108,7 +123,29 @@ const Login = () => {
               Enter your credentials to access your account
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          
+          <CardContent className="space-y-4">
+            <Button
+              variant="outline"
+              type="button"
+              className="w-full flex items-center justify-center gap-2"
+              onClick={handleGoogleSignIn}
+              disabled={authState.isLoading || isGoogleLoading}
+            >
+              {isGoogleLoading ? (
+                <Spinner className="h-4 w-4" />
+              ) : (
+                <Google className="h-4 w-4" />
+              )}
+              Sign in with Google
+            </Button>
+            
+            <div className="flex items-center gap-2">
+              <Separator className="flex-1" />
+              <span className="text-xs text-campus-gray-500">OR</span>
+              <Separator className="flex-1" />
+            </div>
+
             <Form {...form}>
               <form
                 onSubmit={form.handleSubmit(handleSubmit)}
@@ -161,6 +198,7 @@ const Login = () => {
               </form>
             </Form>
           </CardContent>
+          
           <CardFooter className="flex flex-col space-y-4">
             <div className="text-sm text-center">
               <button
