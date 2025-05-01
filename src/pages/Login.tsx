@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { Google } from "lucide-react";
+import { Github } from "lucide-react"; // Changed from Google to Github which is available in lucide-react
 import {
   Form,
   FormControl,
@@ -68,8 +68,8 @@ const Login = () => {
   };
 
   const demoAccounts = [
-    { role: "Student", email: "john.doe@university.edu" },
-    { role: "Faculty", email: "jane.smith@university.edu" },
+    { role: "Student", email: "krishna.bhardwaj@university.edu" },
+    { role: "Faculty", email: "great.guruji@university.edu" },
     { role: "Admin", email: "admin@university.edu" },
   ];
 
@@ -135,7 +135,7 @@ const Login = () => {
               {isGoogleLoading ? (
                 <Spinner className="h-4 w-4" />
               ) : (
-                <Google className="h-4 w-4" />
+                <Github className="h-4 w-4" /> // Changed from Google to Github
               )}
               Sign in with Google
             </Button>
