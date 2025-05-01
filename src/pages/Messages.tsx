@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,6 +13,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { Send, Plus, Search } from "lucide-react";
 import { ChatMessage, ChatConversation } from "@/types/models";
+import { useToast } from "@/hooks/use-toast";
+import Peer from 'peerjs';
 
 // Mock conversation data
 const mockConversations: ChatConversation[] = [
@@ -198,6 +200,7 @@ const mockMessages: Record<string, ChatMessage[]> = {
 const Messages = () => {
   const { authState } = useAuth();
   const { user } = authState;
+  const { toast } = useToast();
   const [selectedConversation, setSelectedConversation] = useState<ChatConversation | null>(
     mockConversations[0]
   );
@@ -207,6 +210,154 @@ const Messages = () => {
   const [messages, setMessages] = useState<ChatMessage[]>(
     mockMessages[mockConversations[0].id] || []
   );
+  
+  // Peer connection state
+  const [peerId, setPeerId] = useState<string>("");
+  const [remotePeerId, setRemotePeerId] = useState<string>("");
+  const [connected, setConnected] = useState(false);
+  const peerInstance = useRef<Peer | null>(null);
+  const connectionRef = useRef<any>(null);
+  
+  // Initialize the peer connection
+  useEffect(() => {
+    if (!user) return;
+    
+    const peer = new Peer(`${user.name.replace(/\s+/g, '-').toLowerCase()}-${user.id.substring(0, 5)}`, {
+      debug: 2,
+    });
+    
+    peer.on('open', (id) => {
+      setPeerId(id);
+      toast({
+        title: "Connected to chat network",
+        description: `Your chat ID: ${id}`,
+      });
+    });
+    
+    peer.on('connection', (conn) => {
+      connectionRef.current = conn;
+      setConnected(true);
+      
+      conn.on('data', (data: any) => {
+        handleReceivedMessage(data);
+      });
+      
+      conn.on('close', () => {
+        setConnected(false);
+        toast({
+          title: "Disconnected",
+          description: "The other user has disconnected",
+          variant: "destructive",
+        });
+      });
+    });
+    
+    peer.on('error', (err) => {
+      console.error(err);
+      toast({
+        title: "Connection Error",
+        description: err.message,
+        variant: "destructive",
+      });
+    });
+    
+    peerInstance.current = peer;
+    
+    return () => {
+      if (connectionRef.current) {
+        connectionRef.current.close();
+      }
+      if (peerInstance.current) {
+        peerInstance.current.destroy();
+      }
+    };
+  }, [user, toast]);
+  
+  const connectToPeer = () => {
+    if (!remotePeerId || !peerInstance.current || !user) return;
+    
+    try {
+      const conn = peerInstance.current.connect(remotePeerId);
+      connectionRef.current = conn;
+      
+      conn.on('open', () => {
+        setConnected(true);
+        toast({
+          title: "Connected",
+          description: `Connected to ${remotePeerId}`,
+        });
+      });
+      
+      conn.on('data', (data: any) => {
+        handleReceivedMessage(data);
+      });
+      
+      conn.on('close', () => {
+        setConnected(false);
+        toast({
+          title: "Disconnected",
+          description: "The connection was closed",
+          variant: "destructive",
+        });
+      });
+    } catch (err: any) {
+      toast({
+        title: "Connection Error",
+        description: err.message,
+        variant: "destructive",
+      });
+    }
+  };
+  
+  const handleReceivedMessage = (data: ChatMessage) => {
+    if (!selectedConversation) return;
+    
+    // If we received a message from someone we don't have a conversation with,
+    // create a new conversation
+    if (!conversations.some(c => 
+      c.participants.some(p => p.id === data.senderId)
+    )) {
+      const newConversation: ChatConversation = {
+        id: Date.now().toString(),
+        participants: [{
+          id: data.senderId,
+          name: data.senderName,
+          avatar: data.senderAvatar,
+        }],
+        lastMessage: data,
+        unreadCount: 1,
+        isGroup: false,
+      };
+      
+      setConversations(prev => [...prev, newConversation]);
+      mockMessages[newConversation.id] = [data];
+    } else {
+      // Add the message to the existing conversation
+      const conversation = conversations.find(c => 
+        c.participants.some(p => p.id === data.senderId)
+      );
+      
+      if (conversation) {
+        // Update the conversation's last message
+        setConversations(prev => 
+          prev.map(c => c.id === conversation.id 
+            ? { ...c, lastMessage: data, unreadCount: selectedConversation?.id === c.id ? 0 : c.unreadCount + 1 } 
+            : c
+          )
+        );
+        
+        // Add the message to the conversation's messages
+        if (selectedConversation?.id === conversation.id) {
+          setMessages(prev => [...prev, data]);
+        } else {
+          if (!mockMessages[conversation.id]) {
+            mockMessages[conversation.id] = [];
+          }
+          mockMessages[conversation.id].push(data);
+        }
+      }
+    }
+  };
 
   const filteredConversations = conversations.filter((conv) => {
     const name = conv.name || conv.participants[0]?.name || "";
@@ -254,6 +405,11 @@ const Messages = () => {
       )
     );
     
+    // Send message to peer if connected
+    if (connectionRef.current && connected) {
+      connectionRef.current.send(newMessage);
+    }
+    
     // Clear input
     setMessage("");
   };
@@ -280,6 +436,34 @@ const Messages = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
+            
+            {/* P2P Connection controls */}
+            <div className="mb-2 text-xs text-campus-gray-500">
+              {peerId ? (
+                <div className="mb-1">Your ID: <span className="font-mono bg-campus-gray-100 px-1 rounded select-all">{peerId}</span></div>
+              ) : (
+                <div className="mb-1">Connecting...</div>
+              )}
+              
+              <div className="flex gap-2">
+                <Input 
+                  placeholder="Enter peer ID to connect" 
+                  className="text-xs h-8"
+                  value={remotePeerId}
+                  onChange={(e) => setRemotePeerId(e.target.value)}
+                  disabled={connected}
+                />
+                <Button 
+                  size="sm" 
+                  className="h-8 whitespace-nowrap" 
+                  onClick={connectToPeer}
+                  disabled={!remotePeerId || connected}
+                >
+                  Connect
+                </Button>
+              </div>
+            </div>
+            
             <Button size="sm" className="w-full">
               <Plus className="h-4 w-4 mr-2" />
               New Conversation
@@ -329,29 +513,32 @@ const Messages = () => {
           {selectedConversation ? (
             <>
               {/* Chat header */}
-              <div className="p-4 border-b flex items-center">
-                <Avatar className="h-10 w-10 mr-3">
-                  <AvatarImage 
-                    src={
-                      selectedConversation.isGroup 
-                        ? undefined 
-                        : selectedConversation.participants[0]?.avatar
-                    } 
-                  />
-                  <AvatarFallback>
-                    {(selectedConversation.name || selectedConversation.participants[0]?.name || "").charAt(0)}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="font-medium">
-                    {selectedConversation.name || selectedConversation.participants[0]?.name}
-                  </p>
-                  <p className="text-xs text-campus-gray-500">
-                    {selectedConversation.isGroup 
-                      ? `${selectedConversation.participants.length} participants` 
-                      : "Online"}
-                  </p>
+              <div className="p-4 border-b flex items-center justify-between">
+                <div className="flex items-center">
+                  <Avatar className="h-10 w-10 mr-3">
+                    <AvatarImage 
+                      src={
+                        selectedConversation.isGroup 
+                          ? undefined 
+                          : selectedConversation.participants[0]?.avatar
+                      } 
+                    />
+                    <AvatarFallback>
+                      {(selectedConversation.name || selectedConversation.participants[0]?.name || "").charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-medium">
+                      {selectedConversation.name || selectedConversation.participants[0]?.name}
+                    </p>
+                    <p className="text-xs text-campus-gray-500">
+                      {selectedConversation.isGroup 
+                        ? `${selectedConversation.participants.length} participants` 
+                        : connected ? "Connected" : "Offline"}
+                    </p>
+                  </div>
                 </div>
+                {connected && <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full">Live Chat</span>}
               </div>
               
               {/* Messages */}
@@ -407,7 +594,7 @@ const Messages = () => {
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                   />
-                  <Button type="submit" size="icon">
+                  <Button type="submit" size="icon" disabled={!connected && !selectedConversation.isGroup}>
                     <Send className="h-5 w-5" />
                   </Button>
                 </form>
