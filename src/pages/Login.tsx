@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { Github } from "lucide-react"; // Changed from Google to Github which is available in lucide-react
+import { Mail, Lock, User } from "lucide-react";
 import {
   Form,
   FormControl,
@@ -26,10 +26,9 @@ const loginSchema = z.object({
 });
 
 const Login = () => {
-  const { login, loginWithGoogle, authState } = useAuth();
+  const { login, authState } = useAuth();
   const navigate = useNavigate();
   const [showDemoAccounts, setShowDemoAccounts] = useState(false);
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   // Redirect if already authenticated
   React.useEffect(() => {
@@ -56,17 +55,6 @@ const Login = () => {
     await login(email, "password");
   };
 
-  const handleGoogleSignIn = async () => {
-    setIsGoogleLoading(true);
-    try {
-      await loginWithGoogle();
-    } catch (error) {
-      console.error("Google sign-in failed:", error);
-    } finally {
-      setIsGoogleLoading(false);
-    }
-  };
-
   const demoAccounts = [
     { role: "Student", email: "krishna.bhardwaj@university.edu" },
     { role: "Faculty", email: "great.guruji@university.edu" },
@@ -74,14 +62,14 @@ const Login = () => {
   ];
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-campus-gray-50 px-4">
-      <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          <div className="flex justify-center mb-4">
-            <div className="rounded-md bg-campus-blue p-2">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-campus-gray-50 to-blue-50 px-4">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <div className="flex justify-center mb-6">
+            <div className="rounded-full bg-campus-blue p-3 shadow-lg">
               <svg
-                width="32"
-                height="32"
+                width="40"
+                height="40"
                 viewBox="0 0 24 24"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
@@ -110,46 +98,25 @@ const Login = () => {
               </svg>
             </div>
           </div>
-          <h2 className="text-3xl font-bold text-campus-gray-900">Campus Connect</h2>
-          <p className="mt-2 text-sm text-campus-gray-600">
-            Connect, collaborate, and share resources with your college community
+          <h2 className="text-4xl font-bold text-campus-gray-900">Campus Connect</h2>
+          <p className="mt-2 text-campus-gray-600">
+            Connect, collaborate, and share resources with your campus community
           </p>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Sign In</CardTitle>
-            <CardDescription>
+        <Card className="border-none shadow-lg">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl text-center">Sign In</CardTitle>
+            <CardDescription className="text-center">
               Enter your credentials to access your account
             </CardDescription>
           </CardHeader>
           
-          <CardContent className="space-y-4">
-            <Button
-              variant="outline"
-              type="button"
-              className="w-full flex items-center justify-center gap-2"
-              onClick={handleGoogleSignIn}
-              disabled={authState.isLoading || isGoogleLoading}
-            >
-              {isGoogleLoading ? (
-                <Spinner className="h-4 w-4" />
-              ) : (
-                <Github className="h-4 w-4" /> // Changed from Google to Github
-              )}
-              Sign in with Google
-            </Button>
-            
-            <div className="flex items-center gap-2">
-              <Separator className="flex-1" />
-              <span className="text-xs text-campus-gray-500">OR</span>
-              <Separator className="flex-1" />
-            </div>
-
+          <CardContent className="space-y-4 pt-4">
             <Form {...form}>
               <form
                 onSubmit={form.handleSubmit(handleSubmit)}
-                className="space-y-4"
+                className="space-y-6"
               >
                 <FormField
                   control={form.control}
@@ -158,11 +125,15 @@ const Login = () => {
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input
-                          placeholder="you@university.edu"
-                          {...field}
-                          disabled={authState.isLoading}
-                        />
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            placeholder="you@university.edu"
+                            className="pl-10"
+                            {...field}
+                            disabled={authState.isLoading}
+                          />
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -176,12 +147,16 @@ const Login = () => {
                     <FormItem>
                       <FormLabel>Password</FormLabel>
                       <FormControl>
-                        <Input
-                          type="password"
-                          placeholder="••••••••"
-                          {...field}
-                          disabled={authState.isLoading}
-                        />
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            type="password"
+                            placeholder="••••••••"
+                            className="pl-10"
+                            {...field}
+                            disabled={authState.isLoading}
+                          />
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -190,49 +165,61 @@ const Login = () => {
 
                 <Button
                   type="submit"
-                  className="w-full"
+                  className="w-full py-6 text-base transition-all duration-200 hover:scale-[1.02]"
                   disabled={authState.isLoading}
                 >
-                  {authState.isLoading ? "Signing in..." : "Sign In"}
+                  {authState.isLoading ? (
+                    <div className="flex items-center gap-2">
+                      <Spinner className="h-4 w-4" />
+                      <span>Signing in...</span>
+                    </div>
+                  ) : (
+                    "Sign In"
+                  )}
                 </Button>
               </form>
             </Form>
-          </CardContent>
-          
-          <CardFooter className="flex flex-col space-y-4">
-            <div className="text-sm text-center">
+            
+            <div className="text-center">
               <button
                 type="button"
-                className="text-campus-blue hover:underline font-medium"
+                className="text-sm font-medium text-campus-blue hover:underline"
                 onClick={() => setShowDemoAccounts(!showDemoAccounts)}
               >
-                {showDemoAccounts ? "Hide demo accounts" : "Use demo account"}
+                {showDemoAccounts ? "Hide demo accounts" : "Use a demo account"}
               </button>
             </div>
-
-            {showDemoAccounts && (
-              <div className="w-full space-y-2">
-                <p className="text-xs text-center text-campus-gray-500">
-                  Click to auto-fill a demo account (password will be "password")
-                </p>
-                <div className="grid gap-2">
-                  {demoAccounts.map((account) => (
-                    <Button
-                      key={account.email}
-                      variant="outline"
-                      size="sm"
-                      className="w-full"
-                      onClick={() => handleDemoLogin(account.email)}
-                      disabled={authState.isLoading}
-                    >
-                      Login as {account.role}
-                    </Button>
-                  ))}
-                </div>
+          </CardContent>
+          
+          {showDemoAccounts && (
+            <CardFooter className="flex-col space-y-4 border-t pt-6">
+              <p className="text-xs text-center text-campus-gray-500">
+                Click to auto-fill a demo account (password will be "password")
+              </p>
+              <div className="grid gap-2 w-full">
+                {demoAccounts.map((account) => (
+                  <Button
+                    key={account.email}
+                    variant="outline"
+                    size="sm"
+                    className="w-full flex items-center gap-2 justify-start"
+                    onClick={() => handleDemoLogin(account.email)}
+                    disabled={authState.isLoading}
+                  >
+                    <User className="h-4 w-4" />
+                    <span>Login as {account.role}</span>
+                  </Button>
+                ))}
               </div>
-            )}
-          </CardFooter>
+            </CardFooter>
+          )}
         </Card>
+        
+        <div className="mt-6 text-center">
+          <p className="text-sm text-campus-gray-600">
+            &copy; {new Date().getFullYear()} Campus Connect. All rights reserved.
+          </p>
+        </div>
       </div>
     </div>
   );
