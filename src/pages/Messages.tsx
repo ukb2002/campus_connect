@@ -3,16 +3,26 @@ import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import SecureChat from "@/components/chat/SecureChat";
-import { Lock, MessageSquare, Shield } from "lucide-react";
+import { AlertCircle, Lock, MessageSquare, Shield } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const Messages = () => {
-  const [activeTab, setActiveTab] = useState("regular");
+  const [activeTab, setActiveTab] = useState("secure");
 
   return (
     <div className="container py-6 max-w-6xl">
       <h1 className="text-3xl font-bold mb-6">Messages</h1>
       
-      <Tabs defaultValue="regular" value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Alert className="mb-6 border-amber-200 bg-amber-50">
+        <AlertCircle className="h-4 w-4 text-amber-600" />
+        <AlertTitle className="text-amber-800">Chat Connection Guide</AlertTitle>
+        <AlertDescription className="text-amber-700">
+          To chat with another device on the same network, both users must be on the
+          Messages page. Copy your Peer ID and share it with the other user, then enter their Peer ID to connect.
+        </AlertDescription>
+      </Alert>
+      
+      <Tabs defaultValue="secure" value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid grid-cols-2 w-[400px] mb-6">
           <TabsTrigger value="regular" className="flex items-center gap-2">
             <MessageSquare className="h-4 w-4" /> Regular Chat

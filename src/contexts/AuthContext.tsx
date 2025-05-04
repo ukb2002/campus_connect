@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { AuthState, User } from "@/types/auth";
 import { useToast } from "@/components/ui/use-toast";
@@ -187,7 +186,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signup = async (name: string, email: string, password: string) => {
+  const signup = async (name: string, email: string, password: string): Promise<void> => {
     setAuthState((prev) => ({
       ...prev,
       isLoading: true,
@@ -238,7 +237,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: "Please check your email to verify your account",
       });
       
-      return newUser;
+      // We don't return newUser anymore to match the Promise<void> type
     } catch (error) {
       setAuthState((prev) => ({
         ...prev,
