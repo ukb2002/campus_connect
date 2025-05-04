@@ -14,6 +14,7 @@ const MOCK_USERS: User[] = [
     college: "College of Engineering",
     department: "Computer Science",
     createdAt: new Date().toISOString(),
+    verified: true,
   },
   {
     id: "2",
@@ -24,6 +25,7 @@ const MOCK_USERS: User[] = [
     college: "College of Arts and Sciences",
     department: "Mathematics",
     createdAt: new Date().toISOString(),
+    verified: true,
   },
   {
     id: "3",
@@ -33,6 +35,7 @@ const MOCK_USERS: User[] = [
     avatar: "https://ui-avatars.com/api/?name=Admin+User",
     college: "University Administration",
     createdAt: new Date().toISOString(),
+    verified: true,
   },
   {
     id: "4",
@@ -43,24 +46,16 @@ const MOCK_USERS: User[] = [
     college: "IT Department",
     department: "Software Development",
     createdAt: new Date().toISOString(),
-  },
-  {
-    id: "5",
-    name: "Google User",
-    email: "google.user@gmail.com",
-    role: "student",
-    avatar: "https://ui-avatars.com/api/?name=Google+User",
-    college: "College of Information Technology",
-    department: "Computer Science",
-    createdAt: new Date().toISOString(),
+    verified: true,
   },
 ];
 
 interface AuthContextProps {
   authState: AuthState;
   login: (email: string, password: string) => Promise<void>;
-  loginWithGoogle: () => Promise<void>;
+  signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
+  verifyEmail: (token: string) => Promise<boolean>;
 }
 
 const initialAuthState: AuthState = {
@@ -73,14 +68,16 @@ const initialAuthState: AuthState = {
 const AuthContext = createContext<AuthContextProps>({
   authState: initialAuthState,
   login: async () => {},
-  loginWithGoogle: async () => {},
+  signup: async () => {},
   logout: () => {},
+  verifyEmail: async () => false,
 });
 
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [authState, setAuthState] = useState<AuthState>(initialAuthState);
+  const [pendingUsers, setPendingUsers] = useState<User[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -109,6 +106,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading: false,
       });
     }
+    
+    // Load any pending users from localStorage
+    const storedPendingUsers = localStorage.getItem("campusConnectPendingUsers");
+    if (storedPendingUsers) {
+      try {
+        setPendingUsers(JSON.parse(storedPendingUsers));
+      } catch (err) {
+        localStorage.removeItem("campusConnectPendingUsers");
+      }
+    }
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -123,11 +130,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Simulating API request with timeout
       await new Promise((resolve) => setTimeout(resolve, 1000));
       
+      // First check if the user is in the pending users list
+      const pendingUser = pendingUsers.find((u) => u.email === email);
+      
       // Find user by email (in a real app, the backend would handle authentication)
-      const user = MOCK_USERS.find((u) => u.email === email);
+      const user = [...MOCK_USERS, ...pendingUsers].find((u) => u.email === email);
       
       if (!user) {
         throw new Error("Invalid email or password");
+      }
+      
+      // Check if the user is verified
+      if (pendingUser && !pendingUser.verified) {
+        throw new Error("Please verify your email before logging in");
       }
       
       // Mock password check - just for simulation (NEVER do this in real apps)
@@ -172,7 +187,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const loginWithGoogle = async () => {
+  const signup = async (name: string, email: string, password: string) => {
     setAuthState((prev) => ({
       ...prev,
       isLoading: true,
@@ -180,51 +195,105 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }));
 
     try {
-      // Simulating Google OAuth authentication flow
-      // In a real app, this would integrate with Google's OAuth API
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // In a real application, this would be an API call to your backend
+      // Simulating API request with timeout
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       
-      // For demo purposes, we'll use a mock Google user
-      const googleUser = MOCK_USERS.find((u) => u.email === "google.user@gmail.com");
-      
-      if (!googleUser) {
-        throw new Error("Google authentication failed");
+      // Check if email already exists
+      if ([...MOCK_USERS, ...pendingUsers].some((u) => u.email === email)) {
+        throw new Error("Email already in use");
       }
-
-      // Update user with last active time
-      const updatedUser = {
-        ...googleUser,
-        lastActive: new Date().toISOString(),
-      };
-
-      // Store user in localStorage
-      localStorage.setItem("campusConnectUser", JSON.stringify(updatedUser));
       
-      setAuthState({
-        isAuthenticated: true,
-        user: updatedUser,
-        isLoading: false,
-        error: null,
-      });
-
-      toast({
-        title: "Google Sign-in Successful",
-        description: `Welcome, ${updatedUser.name}!`,
-      });
-    } catch (error) {
+      // Create a new user
+      const newUser: User = {
+        id: `user_${Date.now()}`,
+        name,
+        email,
+        role: "student", // Default role for new users
+        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}`,
+        college: "Not specified",
+        department: "Not specified",
+        createdAt: new Date().toISOString(),
+        verified: false, // Requires email verification
+      };
+      
+      // Add to pending users
+      const updatedPendingUsers = [...pendingUsers, newUser];
+      setPendingUsers(updatedPendingUsers);
+      
+      // Store in localStorage
+      localStorage.setItem("campusConnectPendingUsers", JSON.stringify(updatedPendingUsers));
+      
+      // In a real app, you would send a verification email here
+      // Simulate sending verification email
+      console.log(`Sending verification email to ${email} with token: ${newUser.id}`);
+      
       setAuthState((prev) => ({
         ...prev,
-        isAuthenticated: false,
-        user: null,
         isLoading: false,
-        error: error instanceof Error ? error.message : "Google authentication failed",
       }));
 
       toast({
-        title: "Google Sign-in Failed",
-        description: error instanceof Error ? error.message : "Google authentication failed",
+        title: "Sign up successful",
+        description: "Please check your email to verify your account",
+      });
+      
+      return newUser;
+    } catch (error) {
+      setAuthState((prev) => ({
+        ...prev,
+        isLoading: false,
+        error: error instanceof Error ? error.message : "An unexpected error occurred",
+      }));
+
+      toast({
+        title: "Sign up failed",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
         variant: "destructive",
       });
+      
+      throw error;
+    }
+  };
+
+  const verifyEmail = async (token: string) => {
+    try {
+      // In a real app, this would verify the token with your backend
+      // For now, we'll just look up the user by ID (which we're using as the token)
+      const userIndex = pendingUsers.findIndex((u) => u.id === token);
+      
+      if (userIndex === -1) {
+        toast({
+          title: "Verification failed",
+          description: "Invalid or expired verification link",
+          variant: "destructive",
+        });
+        return false;
+      }
+      
+      // Update the user's verification status
+      const updatedPendingUsers = [...pendingUsers];
+      updatedPendingUsers[userIndex] = {
+        ...updatedPendingUsers[userIndex],
+        verified: true,
+      };
+      
+      setPendingUsers(updatedPendingUsers);
+      localStorage.setItem("campusConnectPendingUsers", JSON.stringify(updatedPendingUsers));
+      
+      toast({
+        title: "Email verified",
+        description: "Your email has been successfully verified. You can now log in.",
+      });
+      
+      return true;
+    } catch (error) {
+      toast({
+        title: "Verification failed",
+        description: "An error occurred during verification",
+        variant: "destructive",
+      });
+      return false;
     }
   };
 
@@ -245,7 +314,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ authState, login, loginWithGoogle, logout }}>
+    <AuthContext.Provider value={{ authState, login, signup, logout, verifyEmail }}>
       {children}
     </AuthContext.Provider>
   );

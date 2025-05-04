@@ -11,6 +11,7 @@ export interface User {
   department?: string;
   createdAt: string;
   lastActive?: string;
+  verified?: boolean;
 }
 
 export interface AuthState {
