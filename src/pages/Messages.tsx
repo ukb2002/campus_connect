@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import SecureChat from "@/components/chat/SecureChat";
-import { AlertCircle, Lock, MessageSquare, Shield } from "lucide-react";
+import { AlertCircle, Lock, MessageSquare, Paperclip } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const Messages = () => {
@@ -19,6 +19,7 @@ const Messages = () => {
         <AlertDescription className="text-amber-700">
           To chat with another device on the same network, both users must be on the
           Messages page. Copy your Peer ID and share it with the other user, then enter their Peer ID to connect.
+          Once connected, you can share messages and resources securely.
         </AlertDescription>
       </Alert>
       
@@ -45,7 +46,7 @@ const Messages = () => {
             <CardContent>
               <div className="bg-slate-50 border rounded-md p-8 text-center">
                 <p className="text-slate-500">
-                  Regular chat features are coming soon. For secure communications, please use the Secure Chat tab.
+                  Regular chat features are coming soon. For secure communications and resource sharing, please use the Secure Chat tab.
                 </p>
               </div>
             </CardContent>
@@ -53,7 +54,7 @@ const Messages = () => {
         </TabsContent>
         
         <TabsContent value="secure" className="mt-0">
-          <div className="h-[600px]">
+          <div className="h-[700px]">
             <SecureChat />
           </div>
         </TabsContent>

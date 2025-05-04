@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from "react";
-import { Send, Lock, Copy, CheckCircle, AlertCircle, Info } from "lucide-react";
+import { Send, Lock, Copy, CheckCircle, AlertCircle, Info, Paperclip, Download, X, Image, FileText, FilePieChart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
@@ -11,6 +11,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { encryptMessage, decryptMessage, generateEncryptionKey } from "@/services/encryptionService";
 import { useAuth } from "@/contexts/AuthContext";
+import { Badge } from "@/components/ui/badge";
+import { ResourceFile } from "@/types/models";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 // Import Peer from the PeerJS library
 import Peer from "peerjs";
@@ -22,6 +25,24 @@ interface Message {
   encrypted: string;
   timestamp: Date;
   isSelf: boolean;
+  resourceLink?: ResourceLink;
+}
+
+interface ResourceLink {
+  name: string;
+  type: string;
+  size: number;
+  url?: string;
+}
+
+interface SharedResource {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  data?: ArrayBuffer;
+  url?: string;
+  sender: string;
 }
 
 const SecureChat: React.FC = () => {
@@ -36,7 +57,12 @@ const SecureChat: React.FC = () => {
   const [copySuccess, setCopySuccess] = useState(false);
   const [activeTab, setActiveTab] = useState("guide");
   const [connections, setConnections] = useState<Record<string, any>>({});
+  const [sharedResources, setSharedResources] = useState<SharedResource[]>([]);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [showResourceDialog, setShowResourceDialog] = useState(false);
+  const [selectedResource, setSelectedResource] = useState<SharedResource | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   // Initialize PeerJS connection when component mounts
@@ -111,6 +137,8 @@ const SecureChat: React.FC = () => {
         });
       } else if (data.type === "message") {
         receiveMessage(data.message);
+      } else if (data.type === "resource") {
+        receiveResource(data.resource);
       }
     });
     
@@ -152,9 +180,15 @@ const SecureChat: React.FC = () => {
   };
 
   const sendMessage = () => {
-    if (!inputMessage.trim() || Object.keys(connections).length === 0) return;
+    if (!inputMessage.trim() && !selectedFile && Object.keys(connections).length === 0) return;
     
     try {
+      // Check if there's a file to share
+      if (selectedFile) {
+        sendFile();
+        return;
+      }
+
       const encryptedContent = encryptMessage(inputMessage, encryptionKey);
       
       const messageObj: Message = {
@@ -188,6 +222,126 @@ const SecureChat: React.FC = () => {
       toast({
         title: "Message failed",
         description: "Could not send encrypted message",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+      setInputMessage(`Sharing file: ${e.target.files[0].name}`);
+    }
+  };
+
+  const sendFile = async () => {
+    if (!selectedFile || Object.keys(connections).length === 0) return;
+
+    try {
+      const fileBuffer = await selectedFile.arrayBuffer();
+      const fileId = `file_${Date.now()}`;
+      const fileSize = selectedFile.size;
+      const fileName = selectedFile.name;
+      const fileType = selectedFile.type;
+      
+      // Create a URL for the file
+      const fileUrl = URL.createObjectURL(selectedFile);
+      
+      // Create a resource object
+      const resource: SharedResource = {
+        id: fileId,
+        name: fileName,
+        size: fileSize,
+        type: fileType,
+        data: fileBuffer,
+        url: fileUrl,
+        sender: authState.user?.name || "You",
+      };
+      
+      // Create a message with the file link
+      const messageObj: Message = {
+        id: `msg_${Date.now()}`,
+        sender: authState.user?.name || "You",
+        content: `Shared file: ${fileName}`,
+        encrypted: encryptMessage(`Shared file: ${fileName}`, encryptionKey),
+        timestamp: new Date(),
+        isSelf: true,
+        resourceLink: {
+          name: fileName,
+          type: fileType,
+          size: fileSize,
+        }
+      };
+      
+      // Add file to shared resources
+      setSharedResources(prev => [...prev, resource]);
+      
+      // Add message to chat
+      setMessages(prev => [...prev, messageObj]);
+      
+      // Send to all connected peers
+      Object.values(connections).forEach(conn => {
+        conn.send({
+          type: "resource",
+          resource: {
+            ...resource,
+            sender: authState.user?.name || "Anonymous",
+          }
+        });
+        
+        // Also send a message about the shared file
+        conn.send({
+          type: "message",
+          message: {
+            ...messageObj,
+            isSelf: false,
+            sender: authState.user?.name || "Anonymous",
+          },
+        });
+      });
+      
+      // Clear input and selected file
+      setInputMessage("");
+      setSelectedFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      
+      toast({
+        title: "File shared",
+        description: `Successfully shared ${fileName}`,
+      });
+    } catch (error) {
+      console.error("Error sending file:", error);
+      toast({
+        title: "File sharing failed",
+        description: "Could not share file",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const receiveResource = (resource: SharedResource) => {
+    try {
+      // Create a blob from the file data
+      if (resource.data) {
+        const blob = new Blob([resource.data]);
+        const url = URL.createObjectURL(blob);
+        resource.url = url;
+      }
+      
+      // Add to shared resources
+      setSharedResources(prev => [...prev, resource]);
+      
+      toast({
+        title: "Resource received",
+        description: `Received: ${resource.name} from ${resource.sender}`,
+      });
+    } catch (error) {
+      console.error("Error receiving resource:", error);
+      toast({
+        title: "Resource error",
+        description: "Could not process received resource",
         variant: "destructive",
       });
     }
@@ -235,6 +389,50 @@ const SecureChat: React.FC = () => {
       title: "Chat cleared",
       description: "All messages have been removed",
     });
+  };
+  
+  const viewResource = (resource: SharedResource) => {
+    setSelectedResource(resource);
+    setShowResourceDialog(true);
+  };
+
+  const downloadResource = (resource: SharedResource) => {
+    if (!resource.url) return;
+    
+    const a = document.createElement('a');
+    a.href = resource.url;
+    a.download = resource.name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const cancelFileSelection = () => {
+    setSelectedFile(null);
+    setInputMessage("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+  
+  // Get file icon based on type
+  const getFileIcon = (type: string) => {
+    if (type.includes('image')) {
+      return <Image className="h-4 w-4" />;
+    } else if (type.includes('pdf')) {
+      return <FileText className="h-4 w-4" />;
+    } else if (type.includes('spreadsheet') || type.includes('excel')) {
+      return <FilePieChart className="h-4 w-4" />;
+    }
+    return <FileText className="h-4 w-4" />;
+  };
+  
+  // Format file size
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return bytes + " B";
+    else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + " KB";
+    else if (bytes < 1073741824) return (bytes / 1048576).toFixed(1) + " MB";
+    else return (bytes / 1073741824).toFixed(1) + " GB";
   };
 
   return (
@@ -346,6 +544,21 @@ const SecureChat: React.FC = () => {
                       <Lock className="h-3 w-3 opacity-60" />
                     </div>
                     <p className="break-words">{message.content}</p>
+                    
+                    {message.resourceLink && (
+                      <div className="mt-2 p-2 bg-slate-100 bg-opacity-20 rounded flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {getFileIcon(message.resourceLink.type)}
+                          <span className="text-xs truncate max-w-[120px]">
+                            {message.resourceLink.name}
+                          </span>
+                        </div>
+                        <Badge variant="outline" className="text-[9px]">
+                          {formatFileSize(message.resourceLink.size)}
+                        </Badge>
+                      </div>
+                    )}
+                    
                     <div className="text-right mt-1">
                       <span className="text-xs opacity-70">
                         {message.timestamp.toLocaleTimeString()}
@@ -360,6 +573,21 @@ const SecureChat: React.FC = () => {
         </CardContent>
         
         <CardFooter className="border-t p-3 bg-white">
+          {selectedFile && (
+            <div className="w-full mb-2 flex items-center justify-between bg-slate-50 p-2 rounded-md">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                <span className="text-sm truncate">{selectedFile.name}</span>
+                <Badge variant="outline" className="text-xs">
+                  {formatFileSize(selectedFile.size)}
+                </Badge>
+              </div>
+              <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={cancelFileSelection}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+          
           <div className="flex w-full gap-2">
             <Input
               placeholder="Type your encrypted message..."
@@ -369,13 +597,71 @@ const SecureChat: React.FC = () => {
               className="flex-1"
               disabled={connectionStatus !== "connected"}
             />
+            
+            <Button 
+              variant="outline"
+              disabled={connectionStatus !== "connected"}
+              onClick={() => fileInputRef.current?.click()}
+              className="px-3"
+            >
+              <Paperclip className="h-4 w-4" />
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleFileSelect} 
+                className="hidden" 
+              />
+            </Button>
+            
             <Button 
               onClick={sendMessage} 
-              disabled={!inputMessage.trim() || connectionStatus !== "connected"}
+              disabled={((!inputMessage.trim() && !selectedFile) || connectionStatus !== "connected")}
             >
               <Send className="h-4 w-4 mr-1" /> Send
             </Button>
           </div>
+          
+          {sharedResources.length > 0 && (
+            <div className="w-full mt-3">
+              <div className="text-sm font-medium mb-1 flex items-center justify-between">
+                <span>Shared Resources</span>
+                <Badge variant="outline" className="text-xs">{sharedResources.length}</Badge>
+              </div>
+              <div className="flex gap-2 overflow-x-auto py-1">
+                {sharedResources.map((resource) => (
+                  <div 
+                    key={resource.id} 
+                    className="flex-shrink-0 flex flex-col items-center gap-1 bg-slate-50 p-2 rounded-md border w-[100px]"
+                  >
+                    <div className="w-full flex justify-center">
+                      {getFileIcon(resource.type)}
+                    </div>
+                    <span className="text-xs text-center truncate w-full" title={resource.name}>
+                      {resource.name}
+                    </span>
+                    <div className="flex gap-1">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-6 w-6 p-0" 
+                        onClick={() => viewResource(resource)}
+                      >
+                        <FileText className="h-3 w-3" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-6 w-6 p-0" 
+                        onClick={() => downloadResource(resource)}
+                      >
+                        <Download className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </CardFooter>
       </TabsContent>
       
@@ -419,7 +705,14 @@ const SecureChat: React.FC = () => {
             <div>
               <h4 className="font-medium">Step 3: Start chatting securely</h4>
               <p className="text-slate-600">
-                Once connected, all messages will be automatically encrypted and decrypted.
+                Once connected, you can send messages and share files securely.
+              </p>
+            </div>
+            
+            <div>
+              <h4 className="font-medium">Step 4: Share resources</h4>
+              <p className="text-slate-600">
+                Click the paperclip icon to share files with your peer. Shared files can be viewed or downloaded.
               </p>
             </div>
           </div>
@@ -454,6 +747,47 @@ const SecureChat: React.FC = () => {
           </div>
         </div>
       </TabsContent>
+      
+      {/* Resource Viewer Dialog */}
+      <Dialog open={showResourceDialog} onOpenChange={setShowResourceDialog}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Resource: {selectedResource?.name}</DialogTitle>
+          </DialogHeader>
+          
+          <div className="mt-4">
+            {selectedResource?.type.includes('image') && selectedResource?.url && (
+              <img 
+                src={selectedResource.url} 
+                alt={selectedResource.name} 
+                className="max-h-[400px] mx-auto" 
+              />
+            )}
+            
+            {!selectedResource?.type.includes('image') && (
+              <div className="p-8 bg-slate-50 rounded-md text-center">
+                <FileText className="h-16 w-16 mx-auto mb-4 text-slate-400" />
+                <p>Preview not available for this file type</p>
+                <p className="text-sm text-slate-500 mt-1">Download the file to view its contents</p>
+              </div>
+            )}
+          </div>
+          
+          <div className="mt-4 flex justify-end gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowResourceDialog(false)}
+            >
+              Close
+            </Button>
+            <Button 
+              onClick={() => selectedResource && downloadResource(selectedResource)}
+            >
+              <Download className="h-4 w-4 mr-2" /> Download
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };
